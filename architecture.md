@@ -25,7 +25,7 @@ This guide describes the architecture, design, and implementation logic for the 
 
 ### **Color Palette (Tailwind / CSS Variables)**
 
-The project uses a semantic color system based on HSL variables.
+The project uses a semantic color system based on HSL variables with explicit utility classes for visibility.
 
 **Global CSS (`globals.css`):**
 
@@ -48,17 +48,26 @@ The project uses a semantic color system based on HSL variables.
 }
 ```
 
+**Primary UI Colors (Explicit Utilities):**
+
+* **Backgrounds:** `bg-white`, `bg-gray-50`, `bg-gray-100`
+* **Text Colors:** `text-gray-900` (headings), `text-gray-700` (body), `text-gray-600` (subtitles), `text-gray-500` (metadata)
+* **Borders:** `border-gray-200`, `border-gray-300`
+* **Primary Accent:** `bg-blue-600`, `hover:bg-blue-700`, `text-blue-600`
+
 **Task & Status Colors:**
 
-* **Backlog:** Gray (`bg-gray-100`, `border-gray-300`)
-* **To Do:** Blue (`bg-blue-50`, `border-blue-300`)
-* **In Progress:** Amber (`bg-amber-50`, `border-amber-300`)
-* **Blocked:** Red (`bg-red-50`, `border-red-300`)
-* **Done:** Green (`bg-green-50`, `border-green-300`)
+* **Backlog:** Gray (`border-gray-300` for column header)
+* **To Do:** Blue (`border-blue-300` for column header)
+* **In Progress:** Amber/Yellow (`border-amber-300` for column header)
+* **Blocked:** Red (`border-red-300` for column header)
+* **Done:** Green (`border-green-300` for column header)
+* **Column Content Area:** `bg-gray-50` for all columns
 
 ### **Typography**
 
-* **Font:** Inter (via `next/font/google`).
+* **Font:** Inter (via `next/font/google`)
+* **Text Scale:** Headings use `text-2xl font-bold text-gray-900`, subtitles use `text-sm text-gray-600`
 
 ---
 
@@ -151,47 +160,135 @@ The application uses **Zustand** stores that connect to **Supabase**.
 
 ### **B. Application Shell (Layout)**
 
-* **Header:**
-  * Sticky top bar.
-  * Left: Logo + App Name + **Current Tenant Name** (with optional "ADMIN" badge).
-  * Right: User Avatar (Initials) -> Dropdown Menu (Includes Logout).
-* **Sidebar:**
-  * Vertical navigation links.
-  * **Active Link:** `bg-primary text-primary-foreground`.
-  * **Inactive Link:** `text-gray-700 hover:bg-gray-100`.
-  * **Links:** Kanban Board, Daily Check-In, Admin Analytics (only valid if `isAdmin`).
+* **Layout Structure:**
+  * Full-height flex layout (`h-screen overflow-hidden bg-gray-50`)
+  * Sidebar on left, main content area on right
+  * Each page has its own header (no global header bar)
+
+* **Sidebar:** (`w-48 bg-white border-r border-gray-200`)
+  * **Top Section:** Tenant info with icon and name
+    * Blue icon background (`bg-blue-600`) with Users icon
+    * Title: "AGILE SCRUM Dashboard" (`text-sm font-semibold text-gray-900`)
+    * Subtitle: Tenant display name (`text-xs text-gray-500`)
+  * **Navigation Links:**
+    * **Active:** `bg-blue-600 text-white font-medium`
+    * **Inactive:** `text-gray-700 hover:bg-gray-100`
+    * Icons and labels in horizontal layout
+  * **Footer Section:** Multi-tenant info message
+    * "Multi-Tenant SaaS" in blue (`text-blue-600 font-medium`)
+    * Description in gray (`text-gray-500`)
+  * **Links:** Kanban Board, Daily Check-In, Admin Analytics (only visible if `isAdmin`)
+
+* **Page Headers:** (Applied per-page)
+  * White background with bottom border (`bg-white border-b border-gray-200`)
+  * Padding: `px-6 py-4`
+  * Title: `text-2xl font-bold text-gray-900`
+  * Subtitle: `text-sm text-gray-600 mt-1`
+  * Action buttons aligned to the right
 
 ### **C. Kanban Board (`/dashboard`)**
 
-* **Components:**
-  * **Columns:** 5 horizontal columns (Backlog -> Done). Each has a colored header (see Colors section).
-  * **Task Card:**
-    * Shows: Priority Badge (colored pill), Title (truncated), Blocker Alert (if status=blocked).
-    * **Interaction:** Draggable using `@dnd-kit`. Clicking opens Edit Modal.
-  * **Task Modal (Dialog):**
-    * Fields: Title, Description, Priority (Select), Status, Story Points (Select), Assignee.
-    * **Conditional Field:** If Status is "Blocked", show a Textarea for "Blocker Details".
-* **Logic:** Dragging a card to a new column instantly updates `status` in Store/DB.
+* **Page Structure:**
+  * White header bar with title and "New Task" button (`bg-blue-600 hover:bg-blue-700`)
+  * Scrollable content area with horizontal columns
+
+* **Columns:** (`w-64 flex-shrink-0`)
+  * **Header:** White background with colored bottom border (4px)
+    * Title: `text-sm font-semibold text-gray-900`
+    * Count badge: `text-xs text-gray-500`
+  * **Content Area:** `bg-gray-50` with vertical task list
+  * **Drag Feedback:** Highlights blue (`bg-blue-50`) when hovering during drag
+
+* **Task Card:**
+  * White background (`bg-white border-gray-200 shadow-sm`)
+  * Title: `text-sm font-medium text-gray-900`
+  * Priority Badge: Colored pill (low/medium/high/critical variants)
+  * Metadata: `text-xs text-gray-600` (story points, assignee)
+  * **Blocker Alert:** Red AlertCircle icon if status="blocked"
+  * **Interaction:**
+    * Draggable using `@dnd-kit/core` with 8px activation distance
+    * Cursor changes: `cursor-grab active:cursor-grabbing`
+    * Click opens Edit Modal
+    * Drag overlay shows rotated card during drag
+
+* **Task Modal (Dialog):**
+  * Fields: Title, Description, Priority (Select), Status, Story Points (Select), Assignee
+  * **Conditional Field:** If Status is "Blocked", show a Textarea for "Blocker Details"
+
+* **Logic:**
+  * Dragging a card to a new column updates `status` in Store/DB immediately
+  * Visual feedback during drag with DragOverlay component
 
 ### **D. Daily Check-In (`/check-in`)**
 
+* **Page Structure:**
+  * White header bar with title and conditional "New Check-In" button
+  * Button only shows if user hasn't checked in today (`bg-blue-600 hover:bg-blue-700`)
+  * Scrollable content area with max-width container
+
 * **Top Section (Status Card):**
-  * **If submitted today:** Green Card ("Great job, you've checked in").
-  * **If not submitted:** Blue Info Card with "Submit Check-In" button.
-* **Form (Modal/Card):**
-  * Fields: Sprint Week, Yesterday's Work, Today's Plan, Impediments, Help Needed.
-  * Read-only fields: Date (Today), Student Name.
-* **History View:**
-  * Two-column grid: "My Check-Ins" (Personal history) vs "Team Check-Ins" (Recent activity).
+  * **If submitted today:** Green card (`bg-green-50 border-green-200`)
+    * Icon: Green circle with CheckCircle (`bg-green-500 w-10 h-10`)
+    * Title: "Check-in submitted today" (`text-green-900 font-semibold`)
+    * Subtitle: "Great job staying on track!" (`text-green-700`)
+  * **If not submitted:** Blue card (`bg-blue-50 border-blue-200`)
+    * Icon: Blue circle with AlertCircle (`bg-blue-500 w-10 h-10`)
+    * Title: "You haven't checked in today" (`text-blue-900 font-semibold`)
+    * Subtitle: "Submit your daily standup update" (`text-blue-700`)
+    * Button: "Submit Check-In" on the right
+
+* **Form (Dialog Modal):**
+  * Opens when "Submit Check-In" or "New Check-In" clicked
+  * Fields: Sprint Week, Yesterday's Work, Today's Plan, Impediments, Help Needed
+  * Read-only fields: Date (Today), Student Name
+
+* **History View (Two-Column Grid):**
+  * **My Check-Ins Card:**
+    * Title: "My Check-Ins" (`text-lg text-gray-900`)
+    * Description: "Your standup history" (`text-sm text-gray-600`)
+    * Empty state: Centered ClipboardCheck icon with "No check-ins yet"
+  * **Team Check-Ins Card:**
+    * Title: "Team Check-Ins"
+    * Description: "Recent updates from your team"
+    * Empty state: "No team check-ins yet"
+  * **Check-in Items:**
+    * Left border accent: `border-l-4 border-blue-600`
+    * Username: `text-sm font-semibold text-gray-900`
+    * Date: `text-xs text-gray-500`
+    * Content: `text-sm text-gray-700` with bold labels
 
 ### **E. Admin Analytics (`/admin`)**
 
-* **Access Control:** Redirects non-admin users to `/dashboard`.
-* **KPI Cards:** Grid showing Total Tasks, Total Story Points, Active Students, Total Check-Ins. Uses colored icon backgrounds.
-* **Filtering:** Global "Tenant Filter" dropdown to view stats for a specific group (e.g., Walmart) vs "All".
-* **Tables:**
-  * **Tenant Overview:** Aggregated stats per tenant.
-  * **User Stats:** Leaderboard of user participation (check-in counts).
+* **Page Structure:**
+  * White header bar with title and Tenant Filter dropdown on the right
+  * Scrollable content area with responsive grid layouts
+
+* **Access Control:** Redirects non-admin users to `/dashboard`
+
+* **KPI Cards:** (4-column grid, responsive to 2-col on md, 1-col on mobile)
+  * White cards with colored icon backgrounds:
+    * Total Tasks: Blue (`text-blue-600 bg-blue-100`)
+    * Total Story Points: Green (`text-green-600 bg-green-100`)
+    * Active Students: Purple (`text-purple-600 bg-purple-100`)
+    * Total Check-Ins: Amber (`text-amber-600 bg-amber-100`)
+  * Large numeric values with descriptive labels
+
+* **Filtering:**
+  * Tenant Filter dropdown in page header
+  * Options: "All" or specific tenant (e.g., "Walmart")
+  * Updates all KPIs and tables dynamically
+
+* **Tables:** (2-column grid on large screens)
+  * **Tenant Overview:**
+    * Shows when "All" filter selected
+    * Columns: Tenant Name, User Count, Task Count, Check-In Count
+  * **User Participation Leaderboard:**
+    * Top 10 users by check-in count
+    * Responsive to filter selection
+
+* **Loading State:**
+  * Centered spinner with blue accent (`border-blue-600`)
+  * Gray text: "Loading analytics..." (`text-gray-600`)
 
 ---
 
