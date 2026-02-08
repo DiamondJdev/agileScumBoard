@@ -72,8 +72,10 @@ export function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 p-3 space-y-3 min-h-[500px] transition-colors',
-          isOver ? 'bg-blue-50' : 'bg-gray-50'
+          'flex-1 p-3 space-y-3 min-h-[500px] transition-all duration-200',
+          isOver 
+            ? 'bg-blue-50 ring-2 ring-blue-400 ring-inset' 
+            : 'bg-gray-50'
         )}
       >
         {tasks.map((task) => (

@@ -12,7 +12,6 @@ import { TASK_STATUSES } from '@/lib/constants/tenants';
 import {
   DndContext,
   DragEndEvent,
-  DragOverlay,
   DragStartEvent,
   PointerSensor,
   useSensor,
@@ -29,12 +28,11 @@ export default function DashboardPage() {
   
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 3,
       },
     })
   );
@@ -54,15 +52,8 @@ export default function DashboardPage() {
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const task = tasks.find((t) => t.id === active.id);
-    setActiveTask(task || null);
-  };
-
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveTask(null);
 
     if (!over || !session) return;
 
@@ -107,7 +98,6 @@ export default function DashboardPage() {
       <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
         <DndContext
           sensors={sensors}
-          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <div className="flex gap-4 h-full min-w-max">
@@ -122,14 +112,6 @@ export default function DashboardPage() {
               />
             ))}
           </div>
-
-          <DragOverlay>
-            {activeTask ? (
-              <div className="rotate-3 opacity-80">
-                <TaskCard task={activeTask} onClick={() => {}} />
-              </div>
-            ) : null}
-          </DragOverlay>
         </DndContext>
       </div>
 
